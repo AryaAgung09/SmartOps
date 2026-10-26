@@ -1,0 +1,739 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  HR
+  IT
+  FINANCE
+  GENERAL_AFFAIR
+  MARKETING
+  SALES
+  LOGISTICS
+  OUTSOURCING
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+enum ContractType {
+  PERMANENT
+  FIXED_TERM
+  PROBATION
+  INTERNSHIP
+  FREELANCE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum RequestType {
+  IT_SUPPORT
+  EQUIPMENT
+  FACILITY
+  ADMINISTRATIVE
+  PROCUREMENT
+}
+
+enum RequestStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+  HALF_DAY
+  ON_LEAVE
+  WORK_FROM_HOME
+  HOLIDAY
+  WEEKEND
+  NOT_CLOCKED_IN
+  EARLY_CHECKOUT
+  OVERTIME
+}
+
+enum AttendanceCorrectionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LeaveRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model Department {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  code        String?  @unique
+  description String?  @db.Text
+  managerId   Int?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users    User[]
+  requests Request[]
+  budgets  Budget[]
+  expenses Expense[]
+  invoices Invoice[]
+
+  @@map("departments")
+}
+
+model EmployeeHistory {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  changedById Int?
+  field       String
+  oldValue    String?  @db.Text
+  newValue    String?  @db.Text
+  reason      String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@map("employee_histories")
+}
+
+model User {
+  id           Int     @id @default(autoincrement())
+  name         String
+  email        String? @unique
+  passwordHash String?
+  role         Role    @default(STAFF)
+
+  employeeId       String?          @unique
+  phone            String?
+  address          String?          @db.Text
+  dateOfBirth      DateTime?        @db.Date
+  gender           Gender?
+  employmentStatus  EmploymentStatus @default(ACTIVE)
+  joinDate          DateTime?        @db.Date
+  contractType      ContractType?
+  contractStartDate DateTime?        @db.Date
+  contractEndDate   DateTime?        @db.Date
+  managerId         Int?
+  profilePhoto      String?
+  workScheduleId   Int?
+  shiftId          Int?
+
+  departmentId Int?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  manager      User?  @relation("UserManager", fields: [managerId], references: [id])
+  subordinates User[] @relation("UserManager")
+  workSchedule WorkSchedule? @relation(fields: [workScheduleId], references: [id])
+  shift        Shift?        @relation(fields: [shiftId], references: [id])
+
+  requests                       Request[]
+  fulfilledRequests              Request[]                @relation("RequestFulfiller")
+  approvals                      Approval[]
+  notifications                  Notification[]
+  auditLogs                      AuditLog[]
+  employeeHistories              EmployeeHistory[]
+  attendances                    Attendance[]
+  attendanceCorrectionsRequested AttendanceCorrection[] @relation("AttendanceCorrectionRequester")
+  attendanceCorrectionsReviewed  AttendanceCorrection[] @relation("AttendanceCorrectionReviewer")
+  leaveRequests                  LeaveRequest[]
+  leaveBalances                  LeaveBalance[]
+  leaveApproved                  LeaveRequest[]         @relation("LeaveApprovedBy")
+  leaveRejected                  LeaveRequest[]         @relation("LeaveRejectedBy")
+  salaryStructures               SalaryStructure[]
+  payrolls                       Payroll[]
+  documentsOwned                 EmployeeDocument[]     @relation("DocumentOwner")
+  documentsUploaded              EmployeeDocument[]     @relation("DocumentUploader")
+  budgetsCreated                 Budget[]               @relation("BudgetCreator")
+  expensesCreated                Expense[]              @relation("ExpenseCreator")
+  expensesApproved               Expense[]              @relation("ExpenseApprover")
+  invoicesCreated                Invoice[]              @relation("InvoiceCreator")
+  paymentsRecorded               Payment[]              @relation("PaymentRecorder")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+enum DocumentCategory {
+  CONTRACT
+  DECREE
+  CERTIFICATE
+  WARNING_LETTER
+  PERSONAL
+  POLICY
+  OTHER
+}
+
+enum DocumentVisibility {
+  HR_ONLY
+  EMPLOYEE
+}
+
+model EmployeeDocument {
+  id           Int                @id @default(autoincrement())
+  title        String
+  category     DocumentCategory
+  ownerId      Int?
+  owner        User?              @relation("DocumentOwner", fields: [ownerId], references: [id])
+  uploadedById Int
+  uploadedBy   User               @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  fileName     String
+  filePath     String
+  mimeType     String
+  fileSize     Int
+  issueDate    DateTime?          @db.Date
+  expiryDate   DateTime?          @db.Date
+  visibility   DocumentVisibility @default(HR_ONLY)
+  archived     Boolean            @default(false)
+  notes        String?            @db.Text
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([ownerId])
+  @@index([expiryDate])
+  @@index([category, archived])
+  @@map("employee_documents")
+}
+
+enum BudgetStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum ExpenseCategory {
+  OPERATIONAL
+  PAYROLL
+  MARKETING
+  TRAVEL
+  EQUIPMENT
+  SOFTWARE
+  UTILITIES
+  OTHER
+}
+
+enum ExpenseStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CASH
+  CHEQUE
+  CREDIT_CARD
+  OTHER
+}
+
+enum PaymentDirection {
+  INBOUND
+  OUTBOUND
+}
+
+model FinanceVendor {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  email     String?
+  phone     String?
+  address   String?  @db.Text
+  taxNumber String?
+  notes     String?  @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  expenses Expense[]
+  invoices Invoice[]
+  payments Payment[]
+
+  @@index([isActive])
+  @@map("finance_vendors")
+}
+
+model Budget {
+  id           Int          @id @default(autoincrement())
+  name         String
+  departmentId Int?
+  department   Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  periodStart  DateTime     @db.Date
+  periodEnd    DateTime     @db.Date
+  amount       Decimal      @db.Decimal(15, 2)
+  status       BudgetStatus @default(ACTIVE)
+  notes        String?      @db.Text
+  createdById  Int
+  createdBy    User         @relation("BudgetCreator", fields: [createdById], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  expenses Expense[]
+
+  @@index([departmentId, periodStart, periodEnd])
+  @@index([status])
+  @@map("budgets")
+}
+
+model Expense {
+  id           Int             @id @default(autoincrement())
+  title        String
+  category     ExpenseCategory
+  amount       Decimal         @db.Decimal(15, 2)
+  expenseDate  DateTime        @db.Date
+  status       ExpenseStatus   @default(PENDING)
+  departmentId Int?
+  department   Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  vendorId     Int?
+  vendor       FinanceVendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  budgetId     Int?
+  budget       Budget?         @relation(fields: [budgetId], references: [id], onDelete: SetNull)
+  payrollId    Int?            @unique
+  payroll      Payroll?        @relation(fields: [payrollId], references: [id], onDelete: SetNull)
+  notes        String?         @db.Text
+  createdById  Int
+  createdBy    User            @relation("ExpenseCreator", fields: [createdById], references: [id])
+  approvedById Int?
+  approvedBy   User?           @relation("ExpenseApprover", fields: [approvedById], references: [id])
+  approvedAt   DateTime?
+  paidAt       DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  payments Payment[]
+
+  @@index([status, expenseDate])
+  @@index([budgetId])
+  @@index([departmentId])
+  @@index([vendorId])
+  @@map("expenses")
+}
+
+model Invoice {
+  id            Int             @id @default(autoincrement())
+  invoiceNumber String          @unique
+  vendorId      Int
+  vendor        FinanceVendor   @relation(fields: [vendorId], references: [id])
+  departmentId  Int?
+  department    Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  issueDate     DateTime        @db.Date
+  dueDate       DateTime        @db.Date
+  amount        Decimal         @db.Decimal(15, 2)
+  status        InvoiceStatus   @default(DRAFT)
+  notes         String?         @db.Text
+  createdById   Int
+  createdBy     User            @relation("InvoiceCreator", fields: [createdById], references: [id])
+  paidAt        DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  payments Payment[]
+
+  @@index([status, dueDate])
+  @@index([vendorId])
+  @@index([departmentId])
+  @@map("invoices")
+}
+
+model Payment {
+  id          Int             @id @default(autoincrement())
+  direction   PaymentDirection
+  amount      Decimal         @db.Decimal(15, 2)
+  paymentDate DateTime        @db.Date
+  method      PaymentMethod   @default(BANK_TRANSFER)
+  reference   String?
+  notes       String?         @db.Text
+  invoiceId   Int?
+  invoice     Invoice?        @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  expenseId   Int?
+  expense     Expense?        @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  vendorId    Int?
+  vendor      FinanceVendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  createdById Int
+  createdBy   User            @relation("PaymentRecorder", fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+
+  @@index([paymentDate, direction])
+  @@index([invoiceId])
+  @@index([expenseId])
+  @@map("payments")
+}
+
+enum PayrollPeriodStatus {
+  DRAFT
+  PROCESSING
+  FINALIZED
+  PAID
+  CANCELLED
+}
+
+enum PayrollStatus {
+  DRAFT
+  CALCULATED
+  FINALIZED
+  PAID
+  CANCELLED
+}
+
+enum PayrollItemType {
+  ALLOWANCE
+  DEDUCTION
+}
+
+model SalaryStructure {
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  user          User      @relation(fields: [userId], references: [id])
+  basicSalary   Decimal   @db.Decimal(15, 2)
+  currency      String    @default("IDR")
+  effectiveFrom DateTime  @db.Date
+  effectiveTo   DateTime? @db.Date
+  status        String    @default("ACTIVE")
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId, status])
+  @@map("salary_structures")
+}
+
+model PayrollPeriod {
+  id          Int                 @id @default(autoincrement())
+  name        String              @unique
+  periodStart DateTime            @db.Date
+  periodEnd   DateTime            @db.Date
+  payDate     DateTime?           @db.Date
+  status      PayrollPeriodStatus @default(DRAFT)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  payrolls Payroll[]
+
+  @@map("payroll_periods")
+}
+
+model Payroll {
+  id              Int           @id @default(autoincrement())
+  payrollPeriodId Int
+  payrollPeriod   PayrollPeriod @relation(fields: [payrollPeriodId], references: [id])
+  userId          Int
+  user            User          @relation(fields: [userId], references: [id])
+  basicSalary     Decimal       @db.Decimal(15, 2)
+  totalAllowance  Decimal       @default(0) @db.Decimal(15, 2)
+  totalDeduction  Decimal       @default(0) @db.Decimal(15, 2)
+  grossSalary     Decimal       @db.Decimal(15, 2)
+  netSalary       Decimal       @db.Decimal(15, 2)
+  status          PayrollStatus @default(DRAFT)
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  items   PayrollItem[]
+  expense Expense?
+
+  @@unique([payrollPeriodId, userId])
+  @@index([userId])
+  @@map("payrolls")
+}
+
+model PayrollItem {
+  id        Int             @id @default(autoincrement())
+  payrollId Int
+  payroll   Payroll         @relation(fields: [payrollId], references: [id])
+  type      PayrollItemType
+  name      String
+  amount    Decimal         @db.Decimal(15, 2)
+  notes     String?         @db.Text
+  createdAt DateTime        @default(now())
+
+  @@map("payroll_items")
+}
+
+model LeaveType {
+  id               Int      @id @default(autoincrement())
+  code             String   @unique
+  name             String
+  description      String?  @db.Text
+  defaultDays      Int?
+  requiresApproval Boolean  @default(true)
+  isPaid           Boolean  @default(true)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  leaveRequests LeaveRequest[]
+  leaveBalances LeaveBalance[]
+
+  @@map("leave_types")
+}
+
+model LeaveBalance {
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  user           User      @relation(fields: [userId], references: [id])
+  leaveTypeId    Int
+  leaveType      LeaveType @relation(fields: [leaveTypeId], references: [id])
+  year           Int
+  allocatedDays  Int       @default(0)
+  usedDays       Int       @default(0)
+  pendingDays    Int       @default(0)
+  adjustmentDays Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, leaveTypeId, year])
+  @@map("leave_balances")
+}
+
+model LeaveRequest {
+  id              Int                @id @default(autoincrement())
+  userId          Int
+  user            User               @relation(fields: [userId], references: [id])
+  leaveTypeId     Int
+  leaveType       LeaveType          @relation(fields: [leaveTypeId], references: [id])
+  startDate       DateTime           @db.Date
+  endDate         DateTime           @db.Date
+  totalDays       Int
+  reason          String?            @db.Text
+  status          LeaveRequestStatus @default(PENDING)
+  submittedAt     DateTime           @default(now())
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  cancelledAt     DateTime?
+  approvedById    Int?
+  approvedBy      User?              @relation("LeaveApprovedBy", fields: [approvedById], references: [id])
+  rejectedById    Int?
+  rejectedBy      User?              @relation("LeaveRejectedBy", fields: [rejectedById], references: [id])
+  rejectionReason String?            @db.Text
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([userId, status])
+  @@index([startDate, endDate])
+  @@map("leave_requests")
+}
+
+model Attendance {
+  id             Int              @id @default(autoincrement())
+  userId         Int
+  user           User             @relation(fields: [userId], references: [id])
+  date           DateTime         @db.Date
+  clockIn        DateTime?
+  clockOut       DateTime?
+  status         AttendanceStatus @default(PRESENT)
+  workingMinutes Int?
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  breakMinutes   Int?
+  lateMinutes    Int             @default(0)
+  earlyCheckoutMinutes Int       @default(0)
+  overtimeMinutes Int             @default(0)
+  notes          String?          @db.Text
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  corrections AttendanceCorrection[]
+
+  @@unique([userId, date])
+  @@map("attendances")
+}
+
+model WorkSchedule {
+  id                Int      @id @default(autoincrement())
+  name              String   @unique
+  startTime         String
+  endTime           String
+  breakMinutes      Int      @default(60)
+  gracePeriodMinutes Int     @default(15)
+  workingDays       String   @default("1,2,3,4,5")
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  users User[]
+
+  @@map("work_schedules")
+}
+
+model Shift {
+  id                Int      @id @default(autoincrement())
+  name              String   @unique
+  startTime         String
+  endTime           String
+  breakMinutes      Int      @default(60)
+  gracePeriodMinutes Int     @default(15)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  users User[]
+
+  @@map("shifts")
+}
+
+model Holiday {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @unique @db.Date
+  name        String
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("holidays")
+}
+
+model AttendanceCorrection {
+  id                Int                        @id @default(autoincrement())
+  attendanceId      Int
+  attendance        Attendance                 @relation(fields: [attendanceId], references: [id])
+  requestedById     Int
+  requestedBy       User                       @relation("AttendanceCorrectionRequester", fields: [requestedById], references: [id])
+  correctionType    String                     @default("OTHER")
+  requestedClockIn  DateTime?
+  requestedClockOut DateTime?
+  requestedStatus   AttendanceStatus?
+  reason            String                     @db.Text
+  status            AttendanceCorrectionStatus @default(PENDING)
+  reviewedById      Int?
+  reviewedBy        User?                      @relation("AttendanceCorrectionReviewer", fields: [reviewedById], references: [id])
+  reviewedAt        DateTime?
+  reviewNote        String?                    @db.Text
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  @@map("attendance_corrections")
+}
+
+model Request {
+  id          Int           @id @default(autoincrement())
+  title       String
+  description String?       @db.Text
+  type        RequestType
+  status      RequestStatus @default(PENDING)
+  currentStep Int           @default(1)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  departmentId Int?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  documentCategory  DocumentCategory?
+  fulfilledFileName String?
+  fulfilledFilePath String?
+  fulfilledMimeType String?
+  fulfilledFileSize Int?
+  fulfilledAt       DateTime?
+  fulfilledById     Int?
+  fulfilledBy       User?      @relation("RequestFulfiller", fields: [fulfilledById], references: [id])
+
+  approvals Approval[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("requests")
+}
+
+model Approval {
+  id           Int            @id @default(autoincrement())
+  stepOrder    Int
+  stepLabel    String?
+  approverRole Role?
+  status       ApprovalStatus @default(PENDING)
+  comment      String?        @db.Text
+  actedAt      DateTime?
+
+  requestId Int
+  request   Request @relation(fields: [requestId], references: [id])
+
+  approverId Int?
+  approver   User? @relation(fields: [approverId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([requestId, stepOrder])
+  @@index([approverId, status])
+  @@map("approvals")
+}
+
+model Notification {
+  id      Int     @id @default(autoincrement())
+  title   String
+  message String  @db.Text
+  isRead  Boolean @default(false)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id       Int     @id @default(autoincrement())
+  action   String
+  entity   String
+  entityId Int?
+  details  String? @db.Text
+
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model RoleFeatureAccess {
+  id         Int      @id @default(autoincrement())
+  role       Role
+  featureKey String
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([role, featureKey])
+  @@index([role, enabled])
+  @@map("role_feature_access")
+}
