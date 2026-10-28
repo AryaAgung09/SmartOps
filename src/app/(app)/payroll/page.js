@@ -138,6 +138,7 @@ export default function PayrollPage() {
   }
 
   const selectedPeriod = periods.find((period) => String(period.id) === String(periodId));
+  const periodLocked = selectedPeriod && ["FINALIZED", "PAID", "CANCELLED"].includes(selectedPeriod.status);
   const columnCount = isAdmin ? 9 : 8;
 
   return (
@@ -195,11 +196,12 @@ export default function PayrollPage() {
               <span className="payroll-toolbar-note">
                 Basic default UMK Batam 2026. Absen, half day, dan cuti tanpa gaji dipotong otomatis; cuti berbayar dan libur nasional tidak dipotong. Lembur setelah 17:00 dibayar otomatis 1,5x upah per jam.
               </span>
+              {periodLocked && <span className="payroll-toolbar-note">Periode ini sudah ditutup dan tidak dapat dihitung ulang.</span>}
               <button
                 type="button"
                 className="button-primary"
                 onClick={generateAll}
-                disabled={!periodId || generating}
+                disabled={!periodId || periodLocked || generating}
               >
                 {generating ? "Memproses payroll..." : "Generate / Hitung Ulang"}
               </button>

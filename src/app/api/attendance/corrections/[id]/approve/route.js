@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth";
-import { getAttendanceMetrics, getScheduleForUser, getStartOfDayInTz } from "@/lib/attendance";
+import { getAttendanceMetrics, getCalendarStatus, getScheduleForUser, getStartOfDayInTz } from "@/lib/attendance";
 import { isCorrectionReviewer } from "@/lib/attendanceCorrection";
 
 export async function POST(request, { params }) {
@@ -34,8 +34,10 @@ export async function POST(request, { params }) {
     const requestedClockIn = correction.requestedClockIn !== null ? correction.requestedClockIn : correction.attendance.clockIn;
     const requestedClockOut = correction.requestedClockOut !== null ? correction.requestedClockOut : correction.attendance.clockOut;
     const schedule = await getScheduleForUser(prisma, correction.requestedBy.id);
+    const dayStart = getStartOfDayInTz(correction.attendance.date);
+    const calendar = await getCalendarStatus(prisma, correction.requestedBy.id, dayStart, schedule);
     const metrics = requestedClockIn && requestedClockOut
-      ? getAttendanceMetrics(requestedClockIn, requestedClockOut, getStartOfDayInTz(correction.attendance.date), schedule)
+      ? getAttendanceMetrics(requestedClockIn, requestedClockOut, dayStart, schedule)
       : null;
 
     const result = await prisma.$transaction(async (tx) => {
@@ -49,7 +51,7 @@ export async function POST(request, { params }) {
         data: {
           clockIn: requestedClockIn,
           clockOut: requestedClockOut,
-          status: correction.requestedStatus || metrics?.status || correction.attendance.status,
+          status: calendar.status || correction.requestedStatus || metrics?.status || correction.attendance.status,
           workingMinutes: metrics?.workingMinutes ?? correction.attendance.workingMinutes,
           scheduledStart: metrics?.scheduledStart ?? correction.attendance.scheduledStart,
           scheduledEnd: metrics?.scheduledEnd ?? correction.attendance.scheduledEnd,

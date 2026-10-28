@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { calculateLeaveDays, getStartOfDayInTz, getAvailableDays } from "@/lib/leave";
+import { getDateOnlyInTz } from "@/lib/attendance";
+import { calculateLeaveDays, getAvailableDays } from "@/lib/leave";
 
 export async function GET(request) {
   try {
@@ -72,8 +73,8 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: "Jenis cuti tidak valid" }, { status: 400 });
     }
 
-    const s = getStartOfDayInTz(new Date(startDate));
-    const e = getStartOfDayInTz(new Date(endDate));
+    const s = getDateOnlyInTz(new Date(startDate));
+    const e = getDateOnlyInTz(new Date(endDate));
     if (s > e) {
       return NextResponse.json({ success: false, message: "Tanggal tidak valid" }, { status: 400 });
     }

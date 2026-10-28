@@ -13,6 +13,9 @@ export async function POST(request, { params }) {
     const payroll = await prisma.payroll.findUnique({ where: { id: payrollId }, include: { payrollPeriod: true } });
     if (!payroll) return NextResponse.json({ success: false, message: "Payroll tidak ditemukan" }, { status: 404 });
     if (payroll.status === "FINALIZED" || payroll.status === "PAID") return NextResponse.json({ success: false, message: "Payroll sudah difinalisasi" }, { status: 409 });
+    if (payroll.status === "CANCELLED" || payroll.payrollPeriod.status === "CANCELLED") {
+      return NextResponse.json({ success: false, message: "Payroll atau periodenya telah dibatalkan" }, { status: 409 });
+    }
 
     const updated = await prisma.$transaction(async (tx) => {
       const p = await tx.payroll.update({ where: { id: payrollId }, data: { status: "FINALIZED" } });

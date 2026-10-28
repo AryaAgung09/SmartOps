@@ -1,6 +1,6 @@
 import {
+  getDateOnlyInTz,
   getDateStringInTz,
-  getStartOfDayInTz,
   getScheduleWindow,
   isWorkingDay,
 } from "@/lib/attendance";
@@ -12,7 +12,7 @@ function addDay(date) {
 function parseDate(value, fallback) {
   if (!value) return fallback;
   const parsed = new Date(`${value}T00:00:00+07:00`);
-  return Number.isNaN(parsed.getTime()) ? fallback : getStartOfDayInTz(parsed);
+  return Number.isNaN(parsed.getTime()) ? fallback : getDateOnlyInTz(parsed);
 }
 
 function getDates(start, end) {
@@ -22,7 +22,7 @@ function getDates(start, end) {
 }
 
 export async function getAttendanceSummary(prisma, actor, options = {}) {
-  const today = getStartOfDayInTz(new Date());
+  const today = getDateOnlyInTz(new Date());
   const start = parseDate(options.startDate || options.date, today);
   const requestedEnd = parseDate(options.endDate, start);
   const end = options.date ? addDay(start) : options.endDate ? addDay(requestedEnd) : addDay(start);

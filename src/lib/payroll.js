@@ -1,4 +1,4 @@
-const { getDateStringInTz, getScheduleForUser, getStartOfDayInTz, isWorkingDay } = require("./attendance");
+const { getDateOnlyInTz, getDateStringInTz, getScheduleForUser, getStartOfDayInTz, isWorkingDay } = require("./attendance");
 
 const UMK_BATAM_2026 = 5357982;
 const AUTO_DEDUCTION_NAMES = ["Potongan Absen", "Potongan Setengah Hari", "Potongan Cuti Tanpa Gaji"];
@@ -61,8 +61,8 @@ function calculateOvertimePay(basicSalary, overtimeMinutes) {
 }
 
 async function getPayrollOvertime(prisma, { userId, basicSalary, periodStart, periodEnd }) {
-  const start = getStartOfDayInTz(periodStart);
-  const end = addDays(getStartOfDayInTz(periodEnd), 1);
+  const start = getDateOnlyInTz(periodStart);
+  const end = addDays(getDateOnlyInTz(periodEnd), 1);
   if (end.getTime() <= start.getTime()) {
     return { overtimeMinutes: 0, overtimeHours: 0, hourlyRate: 0, multiplier: OVERTIME_MULTIPLIER, amount: 0, allowance: null };
   }
@@ -112,8 +112,8 @@ async function getAttendancePayrollSummary(prisma, { userId, startDate, endDate 
 }
 
 async function getPayrollDeductions(prisma, { userId, basicSalary, periodStart, periodEnd }) {
-  const start = getStartOfDayInTz(periodStart);
-  const endInclusive = getStartOfDayInTz(periodEnd);
+  const start = getDateOnlyInTz(periodStart);
+  const endInclusive = getDateOnlyInTz(periodEnd);
   const end = addDays(endInclusive, 1);
   const empty = {
     workingDays: 0,

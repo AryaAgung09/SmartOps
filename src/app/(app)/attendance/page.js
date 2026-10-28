@@ -34,6 +34,19 @@ function formatDate(value, options = {}) {
   });
 }
 
+function getTodayDateString() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year").value;
+  const month = parts.find((part) => part.type === "month").value;
+  const day = parts.find((part) => part.type === "day").value;
+  return `${year}-${month}-${day}`;
+}
+
 function formatDuration(value, long = false) {
   const totalMinutes = Number(value) || 0;
   if (!totalMinutes) return "-";
@@ -97,7 +110,7 @@ export default function AttendancePage() {
     setLoading(true);
     try {
       const [todayRes, histRes] = await Promise.all([
-        fetch("/api/attendance?scope=me&limit=1"),
+        fetch(`/api/attendance?scope=me&date=${getTodayDateString()}&limit=1`),
         fetch("/api/attendance?scope=me&limit=20"),
       ]);
       const todayResult = await todayRes.json();

@@ -20,6 +20,11 @@ function getStartOfDayInTz(date) {
   return new Date(`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T00:00:00+07:00`);
 }
 
+function getDateOnlyInTz(date) {
+  const { year, month, day } = getDateParts(date);
+  return new Date(`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T00:00:00.000Z`);
+}
+
 function getDateStringInTz(date) {
   const { year, month, day } = getDateParts(date);
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -151,10 +156,11 @@ function getAttendanceMetrics(clockIn, clockOut, dayStart, schedule) {
 }
 
 async function getCalendarStatus(prisma, userId, dayStart, schedule) {
+  const dateOnly = getDateOnlyInTz(dayStart);
   const [holiday, leave] = await Promise.all([
-    prisma.holiday.findFirst({ where: { date: dayStart, isActive: true }, select: { id: true, name: true } }),
+    prisma.holiday.findFirst({ where: { date: dateOnly, isActive: true }, select: { id: true, name: true } }),
     prisma.leaveRequest.findFirst({
-      where: { userId: Number(userId), status: "APPROVED", startDate: { lte: dayStart }, endDate: { gte: dayStart } },
+      where: { userId: Number(userId), status: "APPROVED", startDate: { lte: dateOnly }, endDate: { gte: dateOnly } },
       select: { id: true, startDate: true, endDate: true },
     }),
   ]);
@@ -167,6 +173,7 @@ async function getCalendarStatus(prisma, userId, dayStart, schedule) {
 module.exports = {
   APP_TZ,
   getStartOfDayInTz,
+  getDateOnlyInTz,
   getDateStringInTz,
   getJakartaWeekday,
   isLate,

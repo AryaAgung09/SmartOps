@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, requireRole } from "@/lib/auth";
-import { getStartOfDayInTz } from "@/lib/attendance";
+import { getDateOnlyInTz } from "@/lib/attendance";
 
 export async function GET(request) {
   try {
@@ -33,13 +33,13 @@ export async function GET(request) {
         where.userId = employeeId;
       }
       if (date) {
-        const d = getStartOfDayInTz(new Date(date));
+        const d = getDateOnlyInTz(new Date(date));
         where.date = d;
       }
       if (startDate || endDate) {
         where.date = {};
-        if (startDate) where.date.gte = getStartOfDayInTz(new Date(startDate));
-        if (endDate) where.date.lte = getStartOfDayInTz(new Date(endDate));
+        if (startDate) where.date.gte = getDateOnlyInTz(new Date(startDate));
+        if (endDate) where.date.lte = getDateOnlyInTz(new Date(endDate));
       }
       if (status && ["PRESENT", "LATE", "ABSENT", "HALF_DAY", "ON_LEAVE", "WORK_FROM_HOME", "HOLIDAY", "WEEKEND", "NOT_CLOCKED_IN", "EARLY_CHECKOUT", "OVERTIME"].includes(status)) {
         where.status = status;
@@ -60,13 +60,13 @@ export async function GET(request) {
         where.status = status;
       }
       if (date) {
-        const d = getStartOfDayInTz(new Date(date));
+        const d = getDateOnlyInTz(new Date(date));
         where.date = d;
       }
       if (startDate || endDate) {
         where.date = {};
-        if (startDate) where.date.gte = getStartOfDayInTz(new Date(startDate));
-        if (endDate) where.date.lte = getStartOfDayInTz(new Date(endDate));
+        if (startDate) where.date.gte = getDateOnlyInTz(new Date(startDate));
+        if (endDate) where.date.lte = getDateOnlyInTz(new Date(endDate));
       }
     }
 

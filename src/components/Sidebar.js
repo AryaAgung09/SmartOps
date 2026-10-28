@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { FEATURE_SECTIONS } from "@/lib/features";
 
@@ -168,6 +168,8 @@ export default function Sidebar({ allowedFeatureKeys = [] }) {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openSections, setOpenSections] = useState({});
+  const closeButtonRef = useRef(null);
+  const mobileTriggerRef = useRef(null);
   const role = session?.user?.role;
   const allowedFeatures = new Set(allowedFeatureKeys);
 
@@ -206,6 +208,32 @@ export default function Sidebar({ allowedFeatureKeys = [] }) {
       window.removeEventListener("notifications:changed", loadUnread);
     };
   }, [status]);
+
+  useEffect(() => {
+    const closeOnPopState = () => setMobileOpen(false);
+    window.addEventListener("popstate", closeOnPopState);
+    return () => window.removeEventListener("popstate", closeOnPopState);
+  }, []);
+
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const mobileTrigger = mobileTriggerRef.current;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") setMobileOpen(false);
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+      mobileTrigger?.focus();
+    };
+  }, [mobileOpen]);
 
   function closeMobile() {
     setMobileOpen(false);
@@ -249,7 +277,11 @@ export default function Sidebar({ allowedFeatureKeys = [] }) {
           onClick={closeMobile}
         />
       )}
-      <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
+      <aside
+        id="primary-navigation"
+        className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}
+        aria-label="Primary navigation"
+      >
         <div className="sidebar-head">
           <Link href="/dashboard" className="sidebar-brand" onClick={closeMobile} aria-label="SmartOps dashboard">
             <span className="sidebar-brand-mark" aria-hidden="true">S</span>
@@ -263,6 +295,7 @@ export default function Sidebar({ allowedFeatureKeys = [] }) {
             className="sidebar-close"
             onClick={closeMobile}
             aria-label="Close navigation"
+            ref={closeButtonRef}
           >
             <NavIcon name="close" />
           </button>
@@ -364,6 +397,9 @@ export default function Sidebar({ allowedFeatureKeys = [] }) {
         className="sidebar-mobile-trigger"
         onClick={() => setMobileOpen(true)}
         aria-label="Open navigation"
+        aria-controls="primary-navigation"
+        aria-expanded={mobileOpen}
+        ref={mobileTriggerRef}
       >
         <NavIcon name="menu" />
       </button>

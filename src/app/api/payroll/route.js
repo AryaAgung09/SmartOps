@@ -52,7 +52,9 @@ export async function POST(request) {
 
     const period = await prisma.payrollPeriod.findUnique({ where: { id: payrollPeriodId } });
     if (!period) return NextResponse.json({ success: false, message: "Periode tidak ditemukan" }, { status: 404 });
-    if (period.status === "FINALIZED" || period.status === "PAID") return NextResponse.json({ success: false, message: "Periode sudah difinalisasi" }, { status: 403 });
+    if (period.status === "FINALIZED" || period.status === "PAID" || period.status === "CANCELLED") {
+      return NextResponse.json({ success: false, message: "Periode tidak dapat diproses" }, { status: 409 });
+    }
 
     const generateAll = body.generateAll === true || !body.userId;
     let targets;

@@ -1,10 +1,11 @@
 import "./globals.css";
+import "./ui-system.css";
 import Provider from "./provider";
 
 export const metadata = {
-  title: "SmartOps",
+  title: "SmartOps | Operations Management",
   description:
-    "Smart Operations Management System",
+    "An enterprise-style operations platform for people, attendance, requests, leave, payroll, finance, and documents.",
 };
 
 export default function RootLayout({

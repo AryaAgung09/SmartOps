@@ -12,9 +12,23 @@ export async function POST(request) {
     const payDate = body.payDate || null;
     if (!name || !periodStart || !periodEnd) return NextResponse.json({ success: false, message: "Data tidak lengkap" }, { status: 400 });
 
+    const start = new Date(periodStart);
+    const end = new Date(periodEnd);
+    const paymentDate = payDate ? new Date(payDate) : null;
+    if (
+      Number.isNaN(start.getTime()) ||
+      Number.isNaN(end.getTime()) ||
+      (paymentDate && Number.isNaN(paymentDate.getTime()))
+    ) {
+      return NextResponse.json({ success: false, message: "Tanggal periode tidak valid" }, { status: 400 });
+    }
+    if (end < start) {
+      return NextResponse.json({ success: false, message: "Tanggal selesai harus sama atau setelah tanggal mulai" }, { status: 400 });
+    }
+
     const period = await prisma.$transaction(async (tx) => {
       const p = await tx.payrollPeriod.create({
-        data: { name, periodStart: new Date(periodStart), periodEnd: new Date(periodEnd), payDate: payDate ? new Date(payDate) : null, status: "DRAFT" },
+        data: { name, periodStart: start, periodEnd: end, payDate: paymentDate, status: "DRAFT" },
       });
       await tx.auditLog.create({
         data: { action: "PAYROLL_PERIOD_CREATED", entity: "PayrollPeriod", entityId: p.id, userId: Number(actor.id), details: `name=${name}` },

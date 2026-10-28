@@ -53,12 +53,14 @@ export default function NotificationItem({
   }
 
   return (
-    <div
+    <button
+      type="button"
       className={`notification-card ${
         notification.isRead
           ? "notification-read"
           : "notification-unread"
       }`}
+      disabled={notification.isRead || loading}
       onClick={markAsRead}
       style={{
         cursor: notification.isRead
@@ -91,6 +93,6 @@ export default function NotificationItem({
           ).toLocaleString("id-ID")}
         </small>
       </div>
-    </div>
+    </button>
   );
 }

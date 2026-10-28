@@ -1900,10 +1900,14 @@ main:not(.dashboard-shell) > section h2 { color: #0f172a; font-size: 18px; }
 }
 
 .notification-card {
+  width: 100%;
   padding: 18px;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   background: #ffffff;
+  color: inherit;
+  font: inherit;
+  text-align: left;
 }
 
 .notification-unread {

@@ -19,6 +19,9 @@ export async function POST(request, { params }) {
       },
     });
     if (!payroll) return NextResponse.json({ success: false, message: "Payroll tidak ditemukan" }, { status: 404 });
+    if (payroll.payrollPeriod.status === "CANCELLED") {
+      return NextResponse.json({ success: false, message: "Periode payroll telah dibatalkan" }, { status: 409 });
+    }
     if (payroll.status !== "FINALIZED") return NextResponse.json({ success: false, message: "Payroll harus difinalisasi terlebih dahulu" }, { status: 400 });
 
     const result = await prisma.$transaction(async (tx) => {

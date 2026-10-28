@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { getStartOfDayInTz, getScheduleForUser, getCalendarStatus, getAttendanceMetrics } from "@/lib/attendance";
+import { getDateOnlyInTz, getStartOfDayInTz, getScheduleForUser, getCalendarStatus, getAttendanceMetrics } from "@/lib/attendance";
 
 export async function POST() {
   try {
@@ -12,9 +12,10 @@ export async function POST() {
 
     const now = new Date();
     const dayStart = getStartOfDayInTz(now);
+    const attendanceDate = getDateOnlyInTz(now);
 
     const attendance = await prisma.attendance.findUnique({
-      where: { userId_date: { userId: Number(user.id), date: dayStart } },
+      where: { userId_date: { userId: Number(user.id), date: attendanceDate } },
     });
 
     if (!attendance || !attendance.clockIn) {

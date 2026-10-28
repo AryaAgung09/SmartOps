@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { getStartOfDayInTz } from "@/lib/attendance";
+import { getDateOnlyInTz } from "@/lib/attendance";
 import { getAttendancePayrollSummary } from "@/lib/payroll";
 
 export async function GET(request) {
@@ -24,7 +24,7 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
 
-    const startDate = getStartOfDayInTz(
+    const startDate = getDateOnlyInTz(
       searchParams.get("startDate")
         ? new Date(searchParams.get("startDate"))
         : new Date(
@@ -34,7 +34,7 @@ export async function GET(request) {
           )
     );
 
-    const endDate = getStartOfDayInTz(
+    const endDate = getDateOnlyInTz(
       searchParams.get("endDate")
         ? new Date(searchParams.get("endDate"))
         : new Date()
